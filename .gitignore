@@ -1,0 +1,6 @@
+.idea
+.idea/*
+.env
+__pycache__
+!.env.example*
+*.sqlite3

@@ -1,0 +1,20 @@
+[tool.poetry]
+name = "es-orm"
+version = "0.1.0"
+description = "es orm"
+authors = ["iulmt <181755010@qq.com>"]
+readme = "README.md"
+packages = [{ include = "es_orm" }]
+
+[[tool.poetry.source]]
+name = "HuaWei"
+url = "https://repo.huaweicloud.com/repository/pypi/simple/"
+
+[tool.poetry.dependencies]
+python = "^3.8"
+elasticsearch = "7.10.0"
+python-dotenv = "^0.21.0"
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
