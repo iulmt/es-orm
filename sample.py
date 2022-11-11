@@ -1,4 +1,5 @@
 import datetime, os, logging
+
 from dotenv import load_dotenv
 from elasticsearch import Elasticsearch
 from es_fields import TextField, IntegerField, DateField, ESObjectField
@@ -17,7 +18,7 @@ logging.info('load .env')
 load_dotenv()
 
 # 定义 index
-logging.info('set indices')
+logging.info('-> set indices')
 indices = {
     'person': [
         TextField('name'),
@@ -29,7 +30,7 @@ indices = {
 }
 
 # 创建ES链接
-logging.info('create es connection')
+logging.info('-> create es connection')
 ES_INSTANCE = Elasticsearch(
     [os.environ['ES_HOST']],
     http_auth=[
@@ -41,15 +42,15 @@ ES_INSTANCE = Elasticsearch(
 )
 
 # 初始化ES客户端
-logging.info('init es client')
+logging.info('-> init es client')
 client = SimpleESClient(ES_INSTANCE)
 
 # 初始化 index
-logging.info('init indices')
+logging.info('-> init indices')
 client.migrate(indices)
 
 # 插入数据
-logging.info('insert demo data')
+logging.info('-> insert demo data')
 q = Q.filter('term', age=1)
 if not client.exists(index='person', body=q()):
     for i in range(1, 101):
@@ -63,10 +64,15 @@ if not client.exists(index='person', body=q()):
 
 # 搜索 年龄等于1的人物信息
 q = Q.must('term', age=1)
-logging.info(f'search age=1: {q()}')
+logging.info(f'-> search age=1: {q()}')
 resp = client.search(index='person', body=q())
 for p in resp:
-    print(p)
+    logging.info(p)
+
+# 更新 age=1 任务信息的名称(name)
+client.update_by_query(index='person', body=q(), data={'name': 'xiaoming'})
+res = client.search(index='person', body=q())
+print(res.hits()[0])
 
 # client.insert(index='site', body={'scheme': 'http', 'domain': 'baidu.com', 'path': 'flag/1'})
 

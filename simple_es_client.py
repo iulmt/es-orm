@@ -7,19 +7,20 @@ from helper import no_exception
 from elasticsearch import Elasticsearch, helpers
 
 
-def params_check(fn: Callable = None, args: list = None, **defaults):
+def params_check(fn: Callable = None, required: list = None, **defaults):
     """参数检查"""
 
     def _params_check(f):
         @functools.wraps(f)
-        def inner(*_args, **kwargs):
-            defaults.update(kwargs)
+        def inner(self, **kwargs):
+            local_defaults = dict(defaults)
+            local_defaults.update(kwargs)
 
-            for arg in (args or []):
-                if defaults.get(arg) is None:
+            for arg in (required or []):
+                if local_defaults.get(arg) is None:
                     raise Exception(f'{f.__name__} need param({arg})')
 
-            return callable(f) and f(*_args, **defaults)
+            return callable(f) and f(self, **local_defaults)
 
         return inner
 
@@ -30,7 +31,7 @@ class SimpleESClient(object):
     def __init__(self, es: Elasticsearch):
         self.es: Elasticsearch = es
 
-    @params_check(args=['index', 'body'], request_timeout=999)
+    @params_check(required=['index', 'body'], request_timeout=999)
     def search(self, **kwargs):
         """搜索"""
         params = {
@@ -47,7 +48,7 @@ class SimpleESClient(object):
 
         return Result(self.es.search(**params))
 
-    @params_check(args=['index', 'body'], refresh=False)
+    @params_check(required=['index', 'body'], refresh=False)
     def insert(self, **kwargs):
         """插入数据 无ID可自动生成ID"""
         params = {
@@ -64,7 +65,7 @@ class SimpleESClient(object):
 
         self.es.index(**params)
 
-    @params_check(args=['index', 'body'], threads=5, refresh=False, limit=500)
+    @params_check(required=['index', 'body'], threads=5, refresh=False, limit=500)
     def bulk_insert(self, **kwargs):
         """批量插入"""
 
@@ -90,7 +91,7 @@ class SimpleESClient(object):
             ):
                 (not success) and logging.error(f'insert error: {info}')
 
-    @params_check(scroll='5m', size=200, limit=1000, args=['src', 'dst', 'filters'])
+    @params_check(scroll='5m', size=200, limit=1000, required=['src', 'dst', 'filters'])
     def reindex(self, **kwargs):
         """数据迁移"""
         data: Result = Result(self.es.search(
@@ -109,7 +110,7 @@ class SimpleESClient(object):
             data = Result(self.es.scroll(scroll_id=data.scroll_id, scroll=kwargs['scroll']))
         body and self.bulk_insert(index=kwargs['dst'], body=body)
 
-    @params_check(refresh=False, args=['id', 'index', 'body'])
+    @params_check(refresh=False, required=['id', 'index', 'body'])
     def create(self, **kwargs):
         """ 插入数据 必须手动加入ID """
         params = {
@@ -124,7 +125,7 @@ class SimpleESClient(object):
 
         self.es.create(**params)
 
-    @params_check(threads=5, refresh=False, limit=500, args=['data', 'index', 'body'])
+    @params_check(threads=5, refresh=False, limit=500, required=['data', 'index', 'body'])
     def update_by_query(self, **kwargs):
         """ 根据查询更新 """
         if not isinstance(kwargs['data'], dict):
@@ -153,7 +154,7 @@ class SimpleESClient(object):
             ):
                 (not success) and logging.error(f'insert error: {info}')
 
-    @params_check(args=['body', 'index'], refresh=False, request_timeout=999)
+    @params_check(required=['body', 'index'], refresh=False, request_timeout=999)
     def update_by_script(self, **kwargs):
         """ 当数据量大时，比较慢 """
         if not (kwargs['body'].get('script') and isinstance(kwargs['body']['script'], dict)):
@@ -168,7 +169,7 @@ class SimpleESClient(object):
 
         self.es.update_by_query(**params)
 
-    @params_check(args=['body', 'index'])
+    @params_check(required=['body', 'index'])
     def exists(self, **kwargs):
         """ 是否存在 """
         kwargs['body']['size'] = 0
