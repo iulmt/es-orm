@@ -1,4 +1,5 @@
 import datetime, os, logging
+import time
 
 from dotenv import load_dotenv
 from elasticsearch import Elasticsearch
@@ -66,13 +67,15 @@ if not client.exists(index='person', body=q()):
 q = Q.must('term', age=1)
 logging.info(f'-> search age=1: {q()}')
 resp = client.search(index='person', body=q())
-for p in resp:
-    logging.info(p)
+[logging.info(p) for p in resp]
 
-# 更新 age=1 任务信息的名称(name)
-client.update_by_query(index='person', body=q(), data={'name': 'xiaoming'})
-res = client.search(index='person', body=q())
-print(res.hits()[0])
+# 更新 age=1 人物信息的名称(name)
+client.update_by_query(index='person', body=q(), data={'name': 'xxxx'})
+time.sleep(1)
+resp = client.search(index='person', body=q())
+[logging.info(p) for p in resp]
+
+#
 
 # client.insert(index='site', body={'scheme': 'http', 'domain': 'baidu.com', 'path': 'flag/1'})
 
